@@ -25,8 +25,6 @@ Known limitations :
 - Accelerating too much the simulation (ie. setting dt too high) makes the simulation become incoherent
 - Resizing the window too much may hide some buttons
 
-This project also contains a 3D version that is more like a bonus part, so it may contain bugs.
-
 **IMPORTANT:**  
 This project requires the raylib library, that can be found here:  
 https://github.com/raysan5/raylib (github project)  
