@@ -1,0 +1,32 @@
+
+
+[ ] Makefile
+
+Physics
+[x] calculate forces
+[x] calculate velocity
+[x] calcpositions
+
+Collisions
+[ ] function merge
+
+Graphical Visualization
+[x] choice of a library --> raylib
+[x] tests with 1 object following a given trajectory
+
+Input handling
+[ ] definition of a format for input files
+[x] function to load the information
+
+
+
+Romain 
+[ ] zoom
+[ ] mettre dans une fonction récupération échelle
+[ ] collisions
+
+
+Nicolas
+[ ] trainée (ajouter l'option pour la taille des trainées)
+[ ] faire une fonction pause à part
+[ ] rajout de changement de fichier texte
