@@ -18,25 +18,24 @@ float vector_norm(Vector2 vector) {
     return pow(pow(vector.x, 2) + pow(vector.y, 2), 0.5);
 }
 
-Vector2 force_body2_on_body1 (body_t body1, body_t body2) {
-    /*
-    Calculates the force exerced from the body2 on the body1
+Vector2 force_body2_on_body1(body_t body1, body_t body2) {
 
-    Parameters:
-    body_t body1 : the body subject to the force
-    body_t body2 : the body exercing the force
+    double dx = (double)body2.position.x - (double)body1.position.x;
+    double dy = (double)body2.position.y - (double)body1.position.y;
 
-    Outputs:
-    Vector2 force : 2-dimension vector representing the force
-    */
+    double distance = sqrt(dx * dx + dy * dy);
+
+    if (distance <= 0.0) {
+        return (Vector2){0.0f, 0.0f};
+    }
+
+    double coefficient = G * (double)body1.mass * (double)body2.mass
+                       / (distance * distance * distance);
+
     Vector2 force;
-    // we find the direction first
-    force.x = body2.position.x - body1.position.x;
-    force.y = body2.position.y - body1.position.y;
-    // then we determine the norm
-    float c = G*body1.mass*body2.mass / pow(vector_norm(force), 3);
-    force.x = c*force.x;
-    force.y = c*force.y;
+    force.x = (float)(coefficient * dx);
+    force.y = (float)(coefficient * dy);
+
     return force;
 }
 
@@ -52,8 +51,14 @@ Vector2 force_to_acceleration(Vector2 force, body_t body) {
     Vector2 acceleration : 2-dimension vector representing the acceleration
     */
     Vector2 acceleration;
+
+    if (body.mass <= 0.0f) {
+        return (Vector2){0.0f, 0.0f};
+    }
+
     acceleration.x = force.x / body.mass;
     acceleration.y = force.y / body.mass;
+
     return acceleration;
 }
 
@@ -95,23 +100,58 @@ body_t collision_new_body(body_t body1, body_t body2) {
     Creates the new body resulting in the merge of 2 bodies
     */
     body_t new_body;
-    strcpy(new_body.label, body1.label);
-    strcat(new_body.label, body2.label);
-    new_body.mass = body1.mass + body2.mass;
-    new_body.radius = pow(pow(body1.radius, 3) + pow(body2.radius, 3), 1.0/3.0);
-    new_body.color.r = (body1.color.r * body1.mass + body2.color.r * body2.mass) / new_body.mass;
-    new_body.color.g = (body1.color.g * body1.mass + body2.color.g * body2.mass) / new_body.mass;
-    new_body.color.b = (body1.color.b * body1.mass + body2.color.b * body2.mass) / new_body.mass;
-    new_body.color.a = (body1.color.a * body1.mass + body2.color.a * body2.mass) / new_body.mass;
-    new_body.position.x = (body1.position.x*body1.mass + body2.position.x*body2.mass) / new_body.mass;
-    new_body.position.y = (body1.position.y*body1.mass + body2.position.y*body2.mass) / new_body.mass;
-    new_body.velocity.x = (body1.velocity.x*body1.mass + body2.velocity.x*body2.mass) / new_body.mass;
-    new_body.velocity.y = (body1.velocity.y*body1.mass + body2.velocity.y*body2.mass) / new_body.mass;
+
+    snprintf(new_body.label, sizeof(new_body.label),
+             "%.40s_%.40s", body1.label, body2.label);
+
+    double mass1 = (double)body1.mass;
+    double mass2 = (double)body2.mass;
+    double total_mass = mass1 + mass2;
+
+    if (total_mass <= 0.0) {
+        fprintf(stderr, "Invalid mass in collision_new_body\n");
+        exit(EXIT_FAILURE);
+    }
+
+    new_body.mass = (float)total_mass;
+
+    new_body.radius = powf(powf(body1.radius, 3.0f)
+                         + powf(body2.radius, 3.0f),
+                           1.0f / 3.0f);
+
+    new_body.color.r = (unsigned char)(
+        (body1.color.r * mass1 + body2.color.r * mass2) / total_mass);
+
+    new_body.color.g = (unsigned char)(
+        (body1.color.g * mass1 + body2.color.g * mass2) / total_mass);
+
+    new_body.color.b = (unsigned char)(
+        (body1.color.b * mass1 + body2.color.b * mass2) / total_mass);
+
+    new_body.color.a = 255;
+
+    new_body.position.x = (float)(
+        (body1.position.x * mass1 + body2.position.x * mass2) / total_mass);
+
+    new_body.position.y = (float)(
+        (body1.position.y * mass1 + body2.position.y * mass2) / total_mass);
+
+    new_body.velocity.x = (float)(
+        (body1.velocity.x * mass1 + body2.velocity.x * mass2) / total_mass);
+
+    new_body.velocity.y = (float)(
+        (body1.velocity.y * mass1 + body2.velocity.y * mass2) / total_mass);
 
     new_body.position_tp1 = new_body.position;
     new_body.velocity_tp1 = new_body.velocity;
 
     new_body.previous_positions = malloc(sizeof(Vector2) * MAX_PREVIOUS);
+
+    if (new_body.previous_positions == NULL) {
+        fprintf(stderr, "Allocation error in collision_new_body\n");
+        exit(EXIT_FAILURE);
+    }
+
     for (int k = 0; k < MAX_PREVIOUS; k++) {
         new_body.previous_positions[k] = new_body.position;
     }
@@ -175,7 +215,7 @@ body_t* HandleFarObjects(body_t* tab, int* nbe) {
     Vector2 v;
 
     for (int i=0; i< *nbe; i++) {
-        v = (Vector2){tab[i].position.x - massCenter.x, tab[i].position.x - massCenter.y};
+        v = (Vector2){tab[i].position.x - massCenter.x, tab[i].position.y - massCenter.y};
         d = vector_norm(v);
 
         if (d > maxDist) {maxDist = d; maxIndex = i;}
@@ -189,7 +229,10 @@ body_t* HandleFarObjects(body_t* tab, int* nbe) {
         }
     }
     
-    *nbe = *nbe - 1;
+    if (maxIndex >= 0) {
+        free(tab[maxIndex].previous_positions);
+        *nbe = *nbe - 1;
+    }
     return newtab;
 }
 
@@ -202,4 +245,39 @@ void free_bodies(body_t* tab, int nbe) {
     }
 
     free(tab);
+}
+
+void update_physics(body_t* tab, int nbe, float dt) {
+
+    // Calculate the next state of each body
+    for (int i = 0; i < nbe; i++) {
+        Vector2 total_force = {0.0f, 0.0f};
+
+        for (int j = 0; j < nbe; j++) {
+            if (i != j) {
+                Vector2 force = force_body2_on_body1(tab[i], tab[j]);
+
+                total_force.x += force.x;
+                total_force.y += force.y;
+            }
+        }
+
+        Vector2 acceleration = force_to_acceleration(total_force, tab[i]);
+
+        acceleration_to_velocity(acceleration, &tab[i], dt);
+        velocity_to_position(&tab[i], dt);
+    }
+
+    // Update all bodies and their trajectory histories
+    for (int i = 0; i < nbe; i++) {
+        tab[i].position = tab[i].position_tp1;
+        tab[i].velocity = tab[i].velocity_tp1;
+
+        for (int j = MAX_PREVIOUS - 1; j > 0; j--) {
+            tab[i].previous_positions[j] =
+                tab[i].previous_positions[j - 1];
+        }
+
+        tab[i].previous_positions[0] = tab[i].position;
+    }
 }

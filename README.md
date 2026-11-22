@@ -33,10 +33,12 @@ https://www.raylib.com/ (official website)
 To install and run our project :  
 ```bash
 cd ~
-git clone https://github.com/nicolas-lebouar/planetary_simulation.git
-cd planetary_simulation
+git clone https://github.com/RomainGuinjard/n_body_planetary_simulator.git
+cd n_body_planetary_simulator
 make 2d
+make 3d
 ./2d_model/main.x
+./3d_model/main3d.x
 ```
 
 To install raylib :  

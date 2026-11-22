@@ -68,6 +68,9 @@ void drawVelocity(Vector2 startPosition, Vector2 velocity, Color color, float si
     */
     Vector2 direction = velocity;
     float n = vector_norm(direction);
+    if (n <= 0.0f || !isfinite(n)) {
+        return;
+    }
     direction.x = direction.x / n;
     direction.y = direction.y / n;
 

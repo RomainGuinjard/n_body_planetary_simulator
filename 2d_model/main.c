@@ -36,7 +36,7 @@ int main(int argc, char *argv[]){
     button_t trailsButton = (button_t){(Rectangle){620, 10, 160, 40}, true, "Remove trails", "Draw trails", KEY_T};
     button_t vectorsButton = (button_t){(Rectangle){790, 10, 160, 40}, true, "Remove vectors", "Draw vectors", KEY_V};
     button_t resetSimButton = (button_t){(Rectangle){170, 10, 150, 40}, false, "Reset simulation", "Reset simulation", KEY_R};
-    button_t resetCamButton = (button_t){(Rectangle){330, 10, 150, 40}, false, "Reset camera", "Reset camera", KEY_R};
+    button_t resetCamButton = (button_t){(Rectangle){330, 10, 150, 40}, false, "Reset camera", "Reset camera", KEY_C};
     button_t loadButton = (button_t){(Rectangle){10, 10, 150, 40}, false, "Load new file", "Load new file", KEY_L};
                                     // Rectangle = { x, y, width, height };
                                     
@@ -162,6 +162,13 @@ int main(int argc, char *argv[]){
 
         float dt=Dt.value;
         float previous=Previous.value;
+        if (!(previous >= 2.0f)) {
+            previous = 2.0f;
+        }
+        if (previous > MAX_PREVIOUS) {
+            previous = MAX_PREVIOUS;
+        }
+
         float vectorScale = VectorScale.value;
 
         float wheel = GetMouseWheelMove();
@@ -254,7 +261,7 @@ int main(int argc, char *argv[]){
 
                         unsigned char alpha = (unsigned char)(a * (nb_previous - j) / nb_previous);
 
-                        DrawLineEx(p1, p2, 2.0f, (Color){r, g, b, alpha});
+                        DrawLineEx(p1, p2, 2.0f/camera.zoom, (Color){r, g, b, alpha});
                     }
                 }
 
@@ -278,8 +285,12 @@ int main(int argc, char *argv[]){
                         futureScreenPos.y - screenPos.y
                     };
 
-                    drawVelocity(screenPos, screenVelocity, tab[i].color, 1.0f, 10.0f, 2.0f);
+                    drawVelocity(screenPos, screenVelocity, tab[i].color, 1.0f, 10.0f/camera.zoom, 2.0f/camera.zoom);
                 }
+            }
+
+            if (targetIndex < 0 || targetIndex >= nbe) {
+                centered = false;
             }
 
             if (centered) { // Follow the body targeted by the camera
@@ -363,41 +374,8 @@ int main(int argc, char *argv[]){
 
             handle_collisions(&tab, &nbe);
 
-            for (int i = 0; i < nbe; i++) {
-                body_t body1 = tab[i];
+            update_physics(tab, nbe, dt);
 
-                // for each body, calculate the sum of external forces
-                Vector2 force;
-                force.x = 0.0; force.y = 0.0;
-                for (int j = 0; j < nbe; j++) {
-                    if (j!=i) {
-                        body_t body2 = tab[j];
-                        Vector2 force_2_on_1 = force_body2_on_body1(body1, body2);
-                        force.x = force.x + force_2_on_1.x;
-                        force.y = force.y + force_2_on_1.y;
-                    }
-                }
-
-                // then we determine the acceleration, new velocity and new position of this body
-                Vector2 acceleration = force_to_acceleration(force, body1);
-                acceleration_to_velocity(acceleration, &body1, dt);
-                velocity_to_position(&body1, dt);
-
-                // finally we update the values for the next iteration
-                body1.position.x = body1.position_tp1.x;
-                body1.position.y = body1.position_tp1.y;
-                body1.velocity.x = body1.velocity_tp1.x;
-                body1.velocity.y = body1.velocity_tp1.y;
-
-                Vector2* previous_pos = body1.previous_positions;
-                for (int j = previous-1; j>0; j--) {
-                    previous_pos[j] = previous_pos[j-1];
-                }
-                previous_pos[0] = (Vector2){body1.position.x, body1.position.y};
-                body1.previous_positions = previous_pos;
-                tab[i] = body1;
-
-            }
             handle_collisions(&tab, &nbe);
         }
 
@@ -467,6 +445,6 @@ int main(int argc, char *argv[]){
     CloseWindow();        // Close window
     //--------------------------------------------------------------------------------------
     free(bodyBoxes);
-    free(tab);
+    free_bodies(tab, nbe);
     return 0;
 }

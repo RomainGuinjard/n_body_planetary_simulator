@@ -7,7 +7,7 @@
 #define PHYSICS_H
 
 #define MAX_PREVIOUS 10000
-#define G 6.674 * pow(10, -11) // m3 kg−1 s
+#define G 6.674e-11
 
 typedef struct body {
     char label[100]; 
@@ -42,5 +42,7 @@ Vector2 HeaviestObject(body_t* tab, int* nbe);
 body_t* HandleFarObjects(body_t* tab, int* nbe);
 
 void free_bodies(body_t* tab, int nbe);
+
+void update_physics(body_t* tab, int nbe, float dt);
 
 #endif

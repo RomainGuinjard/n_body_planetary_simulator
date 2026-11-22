@@ -117,6 +117,9 @@ void drawVelocity3D(Vector3 startPosition, Vector3 velocity, Color color, float 
     */
     Vector3 direction = velocity;
     float n = vector_norm3d(direction);
+    if (n <= 0.0f || !isfinite(n)) {
+        return;
+    }
     direction.x = direction.x / n;
     direction.y = direction.y / n;
     direction.z = direction.z / n;
